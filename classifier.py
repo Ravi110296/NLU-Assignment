@@ -15,63 +15,59 @@ from sklearn.svm import LinearSVC
 from sklearn.metrics import accuracy_score
 
 # Read data from files
-def read_file(filename):
-    f = open(filename, "r", encoding="utf-8")
-    lines = f.readlines()
-    f.close()
-    return [line.strip() for line in lines]
+def read_file(file_name):
+    with open(file_name, "r", encoding="utf-8") as f:
+        lines = f.readlines()
+    return [line.strip() for line in lines]  # Stripping newlines
 
-sport_texts = read_file("sports.txt")
-politics_texts = read_file("politics.txt")
+# Load the data
+sports = read_file("sports.txt")
+politics = read_file("politics.txt")
 
-texts = sport_texts + politics_texts
-labels = ["sport"] * len(sport_texts) + ["politics"] * len(politics_texts)
+all_texts = sports + politics
+labels_list = ["sport"] * len(sports) + ["politics"] * len(politics)  # Labels
 
-# Train-test split
-X_train, X_test, y_train, y_test = train_test_split(
-    texts, labels, test_size=0.2, random_state=42
+# Split the data, using random_state=42
+train_X, test_X, train_y, test_y = train_test_split(
+    all_texts, labels_list, test_size=0.2, random_state=42
 )
 
-# Feature extraction (TF-IDF)
-vectorizer = TfidfVectorizer(ngram_range=(1,2))
-X_train_vec = vectorizer.fit_transform(X_train)
-X_test_vec = vectorizer.transform(X_test)
+# TF-IDF vectorizer, ngrams 1-2 used
+vec = TfidfVectorizer(ngram_range=(1,2))
+train_vec = vec.fit_transform(train_X)
+test_vec = vec.transform(test_X)
 
-# Models
+# Models to try
 nb_model = MultinomialNB()
 lr_model = LogisticRegression(max_iter=1000)
-svm_model = LinearSVC()
+svm = LinearSVC()
 
-models = {
+model_dict = {  # Dict for models
     "Naive Bayes": nb_model,
-    "Logistic Regression": lr_model,
-    "SVM": svm_model
+    "Log Reg": lr_model,
+    "SVM": svm
 }
 
-# Train and evaluate
-print("Training models...\n")
-
-for name, model in models.items():
-    model.fit(X_train_vec, y_train)
-    predictions = model.predict(X_test_vec)
-    acc = accuracy_score(y_test, predictions)
-    print(name, "Accuracy:", round(acc * 100, 2), "%")
+for model_name, model in model_dict.items():
+    model.fit(train_vec, train_y)
+    preds = model.predict(test_vec)
+    accuracy = accuracy_score(test_y, preds)
+    print(model_name + " "+"accuracy:", round(accuracy * 100, 2), "%")  # Added + for string
 
 # Choose best model (SVM)
-best_model = svm_model
-best_model.fit(X_train_vec, y_train)
+best_model = svm
+best_model.fit(train_vec, train_y)
 
-# Interactive prediction
-print("\nEnter a sentence to classify (type 'exit' to quit):")
+print("\nType a sentence to classify (or 'exit' to stop):")
 
 while True:
     user_input = input("You: ")
-
+    
     if user_input.lower() == "exit":
-        print("Bye!")
         break
-
-    user_vec = vectorizer.transform([user_input])
-    prediction = best_model.predict(user_vec)
-
-    print("Prediction:", prediction[0])
+    
+    # Vectorize user input
+    user_vector = vec.transform([user_input])
+    pred = best_model.predict(user_vector)
+    
+    print(pred[0])
